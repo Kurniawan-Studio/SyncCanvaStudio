@@ -5,26 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SyncCanvas Studio</title>
     <script>
-      // Node-style shims for libs (yjs / y-webrtc / lib0) that expect them.
       window.global = window;
       window.process = window.process || { env: { NODE_ENV: 'production' } };
 
-      // Show any runtime error on-screen instead of a white page.
       function showFatal(title, detail) {
         var root = document.getElementById('root');
         if (!root) return;
         root.innerHTML =
-          '<div style="padding:24px;font-family:ui-monospace,monospace;background:#1C1C1C;color:#F5F5F0;min-height:100vh">' +
+          '<div style="padding:24px;font-family:monospace;background:#1C1C1C;color:#F5F5F0;min-height:100vh">' +
             '<h1 style="color:#ff3d00;margin:0 0 12px">' + title + '</h1>' +
-            '<pre style="white-space:pre-wrap;word-break:break-word">' + detail + '</pre>' +
+            '<pre style="white-space:pre-wrap;word-break:break-word;color:#D6C6B8">' + detail + '</pre>' +
           '</div>';
       }
-      window.addEventListener('error', function (e) {
-        showFatal('Runtime Error', (e.message || 'Unknown') + '\n' + (e.filename || '') + ':' + (e.lineno || 0));
-      });
+
+      window.addEventListener(
+        'error',
+        function (e) {
+          if (e.target && e.target.tagName === 'SCRIPT') {
+            showFatal('Script failed to load', e.target.src || '(unknown src)');
+            return;
+          }
+          showFatal(
+            'Runtime Error',
+            (e.message || 'Unknown') + '\n' + (e.filename || '') + ':' + (e.lineno || 0)
+          );
+        },
+        true
+      );
+
       window.addEventListener('unhandledrejection', function (e) {
         var r = e.reason;
-        showFatal('Unhandled Promise Rejection', (r && r.message) ? r.message : String(r));
+        showFatal('Unhandled Promise Rejection', r && r.message ? r.message : String(r));
+      });
+
+      window.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.children.length > 0) return;
+          var stillLoading = root && root.querySelector('[data-sync-loading]');
+          if (!stillLoading) return;
+          showFatal(
+            'App did not load',
+            'The build output was not served correctly.\n' +
+              'Verify on Vercel: Output Directory = "dist".\n' +
+              'Also open this URL in a new tab to check:\n' +
+              '/assets/   (should return 404 or a list, not redirect to index.html)'
+          );
+        }, 4000);
       });
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +59,14 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div
+        data-sync-loading
+        style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#1C1C1C;color:#D6C6B8;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.25em;text-transform:uppercase"
+      >
+        Loading SyncCanvas Studio…
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
