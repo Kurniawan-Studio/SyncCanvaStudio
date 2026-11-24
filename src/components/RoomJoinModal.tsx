@@ -1,6 +1,5 @@
-// src/components/RoomJoinModal.tsx
 import { useEffect, useState, type FormEvent } from 'react';
-import { X, Sparkles, Plus, LogIn } from 'lucide-react';
+import { X, ArrowRight } from 'lucide-react';
 import { APP_NAME } from '../lib/constants';
 import { generateRoomId, pickRandomUserColor, USER_COLORS } from '../lib/roomId';
 
@@ -39,17 +38,13 @@ export function RoomJoinModal({
     }
   }, [isOpen, mode]);
 
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     const cleanRoomId = roomId.trim().toUpperCase();
     const cleanName = userName.trim();
-    if (cleanRoomId.length < 4 || cleanName.length === 0) {
-      return;
-    }
+    if (cleanRoomId.length < 4 || cleanName.length === 0) return;
     onJoin({
       roomId: cleanRoomId,
       password: password.trim() || undefined,
@@ -60,140 +55,129 @@ export function RoomJoinModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-lg font-semibold text-slate-100">{APP_NAME}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C1C1C] p-4 font-sans">
+      <div className="w-full max-w-lg border border-narka-grey bg-[#1C1C1C]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-narka-grey">
+          <div className="flex items-center gap-4">
+            <span className="text-xs tracking-widest uppercase text-narka-grey">Brand Identity</span>
+            <div className="w-8 h-[1px] bg-narka-grey" />
+            <h2 className="text-xl font-bold tracking-widest uppercase text-narka-light">
+              {APP_NAME}
+            </h2>
           </div>
-          {canClose && onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-              aria-label="Close"
-            >
-              <X className="w-4 h-4" />
+          {canClose && onClose && (
+            <button onClick={onClose} className="text-narka-grey hover:text-narka-light">
+              <X className="w-5 h-5" />
             </button>
-          ) : null}
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-800/60 rounded-lg">
+        <form onSubmit={handleSubmit} className="p-6 space-y-8">
+          <div className="flex gap-6 border-b border-narka-grey pb-4">
             <button
               type="button"
               onClick={() => setMode('create')}
-              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === 'create'
-                  ? 'bg-indigo-500 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+              className={`text-xs tracking-widest uppercase pb-2 transition-colors ${
+                mode === 'create' 
+                  ? 'text-narka-light border-b-2 border-narka-beige' 
+                  : 'text-narka-grey hover:text-narka-light'
               }`}
             >
-              <Plus className="w-4 h-4" /> Create
+              01 / Create Room
             </button>
             <button
               type="button"
               onClick={() => setMode('join')}
-              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === 'join'
-                  ? 'bg-indigo-500 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+              className={`text-xs tracking-widest uppercase pb-2 transition-colors ${
+                mode === 'join' 
+                  ? 'text-narka-light border-b-2 border-narka-beige' 
+                  : 'text-narka-grey hover:text-narka-light'
               }`}
             >
-              <LogIn className="w-4 h-4" /> Join
+              02 / Join Room
             </button>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5" htmlFor="room-id">
-              Room ID
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="room-id"
-                type="text"
-                value={roomId}
-                onChange={(event) => setRoomId(event.target.value.toUpperCase())}
-                className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 font-mono text-sm focus:outline-none focus:border-indigo-500"
-                placeholder="ROOM1234"
-                maxLength={32}
-                autoComplete="off"
-              />
-              {mode === 'create' ? (
-                <button
-                  type="button"
-                  onClick={() => setRoomId(generateRoomId())}
-                  className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-slate-100 hover:border-slate-600 text-sm font-medium"
-                >
-                  New
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5" htmlFor="password">
-              Password (optional)
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
-              placeholder="Leave blank for an open room"
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5" htmlFor="user-name">
-              Display Name
-            </label>
-            <input
-              id="user-name"
-              type="text"
-              value={userName}
-              onChange={(event) => setUserName(event.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
-              placeholder="Your name"
-              maxLength={32}
-              autoComplete="off"
-            />
-          </div>
-
-          <div>
-            <span className="block text-xs font-medium text-slate-400 mb-1.5">Your Color</span>
-            <div className="flex flex-wrap gap-2">
-              {USER_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setUserColor(color)}
-                  className={`w-8 h-8 rounded-full transition-transform ${
-                    userColor === color
-                      ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-white scale-110'
-                      : 'hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: color }}
-                  aria-label={`Select color ${color}`}
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[10px] tracking-widest uppercase text-narka-grey mb-2">
+                Room Identifier
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+                  className="flex-1 bg-transparent border border-narka-grey px-3 py-2 text-sm font-mono text-narka-light focus:outline-none focus:border-narka-beige transition-colors rounded-none"
+                  maxLength={32}
+                  required
                 />
-              ))}
+                {mode === 'create' && (
+                  <button
+                    type="button"
+                    onClick={() => setRoomId(generateRoomId())}
+                    className="px-4 py-2 border border-narka-grey text-xs tracking-widest uppercase text-narka-light hover:bg-narka-light hover:text-narka-dark transition-colors rounded-none"
+                  >
+                    Gen
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] tracking-widest uppercase text-narka-grey mb-2">
+                Access Key (Optional)
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-transparent border border-narka-grey px-3 py-2 text-sm text-narka-light focus:outline-none focus:border-narka-beige transition-colors rounded-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] tracking-widest uppercase text-narka-grey mb-2">
+                Operator Name
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                className="w-full bg-transparent border border-narka-grey px-3 py-2 text-sm text-narka-light focus:outline-none focus:border-narka-beige transition-colors rounded-none"
+                maxLength={32}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] tracking-widest uppercase text-narka-grey mb-2">
+                Signal Color
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {USER_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setUserColor(color)}
+                    className={`w-6 h-6 rounded-none transition-transform ${
+                      userColor === color ? 'ring-1 ring-narka-beige scale-110' : 'opacity-60 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={roomId.trim().length < 4 || userName.trim().length === 0}
-            className="w-full py-2.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium text-sm transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 bg-narka-beige text-narka-dark text-xs tracking-widest uppercase font-bold hover:bg-[#c4b4a6] transition-colors rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {mode === 'create' ? 'Create Room' : 'Join Room'}
+            <span>Initialize Session</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
-
-          <p className="text-xs text-slate-500 text-center">
-            All data flows peer-to-peer. No servers, no accounts.
-          </p>
         </form>
       </div>
     </div>
