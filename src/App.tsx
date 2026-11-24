@@ -1,6 +1,4 @@
-// src/App.tsx
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, Code2 } from 'lucide-react';
 import { useP2PSync, SHARED_KEYS } from './hooks/useP2PSync';
 import { RoomJoinModal, type JoinConfig } from './components/RoomJoinModal';
 import { TopBar } from './components/TopBar';
@@ -31,7 +29,6 @@ function Workspace({ config, activeTab, setActiveTab, onLeave }: WorkspaceProps)
   const markdownText = doc.getText(SHARED_KEYS.markdown);
   const codeText = doc.getText(SHARED_KEYS.code);
 
-  // Seed default content — only the creator, only once per room.
   useEffect(() => {
     if (!config.isCreator) return;
     const meta = doc.getMap<unknown>('__meta');
@@ -40,16 +37,11 @@ function Workspace({ config, activeTab, setActiveTab, onLeave }: WorkspaceProps)
     doc.transact(() => {
       if (meta.get('seeded') === true) return;
       meta.set('seeded', true);
-      if (markdownText.length === 0) {
-        markdownText.insert(0, DEFAULT_MARKDOWN);
-      }
-      if (codeText.length === 0) {
-        codeText.insert(0, DEFAULT_CODE);
-      }
+      if (markdownText.length === 0) markdownText.insert(0, DEFAULT_MARKDOWN);
+      if (codeText.length === 0) codeText.insert(0, DEFAULT_CODE);
     }, null);
   }, [config.isCreator, doc, markdownText, codeText]);
 
-  // Collaborative undo/redo keyboard shortcuts.
   useEffect(() => {
     const handler = (event: KeyboardEvent): void => {
       const isModifier = event.ctrlKey || event.metaKey;
@@ -66,43 +58,31 @@ function Workspace({ config, activeTab, setActiveTab, onLeave }: WorkspaceProps)
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
 
-  const handleLeave = useCallback((): void => {
-    onLeave();
-  }, [onLeave]);
-
-  const handleExportJSON = useCallback((): void => {
-    exportToJSON(doc, config.roomId);
-  }, [doc, config.roomId]);
-
-  const handleExportMarkdown = useCallback((): void => {
-    exportToMarkdown(doc, config.roomId);
-  }, [doc, config.roomId]);
-
-  const handleExportPNG = useCallback((): void => {
-    exportToPNG(doc, config.roomId);
-  }, [doc, config.roomId]);
+  const handleExportJSON = useCallback(() => exportToJSON(doc, config.roomId), [doc, config.roomId]);
+  const handleExportMarkdown = useCallback(() => exportToMarkdown(doc, config.roomId), [doc, config.roomId]);
+  const handleExportPNG = useCallback(() => exportToPNG(doc, config.roomId), [doc, config.roomId]);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100">
+    <div className="flex flex-col h-screen bg-[#1C1C1C] text-narka-light font-sans">
       <TopBar
         roomId={config.roomId}
         status={status}
         peers={peers}
         localUser={{ name: config.userName, color: config.userColor }}
-        onLeave={handleLeave}
+        onLeave={onLeave}
         onExportJSON={handleExportJSON}
         onExportMarkdown={handleExportMarkdown}
         onExportPNG={handleExportPNG}
       />
 
-      {status.error ? (
-        <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/30 text-rose-300 text-xs">
-          {status.error}
+      {status.error && (
+        <div className="px-6 py-2 bg-[#ff3d00]/10 border-b border-[#ff3d00] text-[#ff3d00] text-[10px] tracking-widest uppercase">
+          [SYS.ERR] {status.error}
         </div>
-      ) : null}
+      )}
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 min-w-0 relative bg-slate-900/30">
+        <div className="flex-1 min-w-0 relative border-r border-narka-grey">
           <WhiteboardCanvas
             doc={doc}
             transact={transact}
@@ -115,45 +95,35 @@ function Workspace({ config, activeTab, setActiveTab, onLeave }: WorkspaceProps)
           />
         </div>
 
-        <div className="w-[480px] flex-shrink-0 flex flex-col border-l border-slate-800 bg-slate-900/50">
-          <div className="flex border-b border-slate-800">
+        <div className="w-[480px] flex-shrink-0 flex flex-col bg-[#1C1C1C]">
+          <div className="flex border-b border-narka-grey">
             <button
-              type="button"
               onClick={() => setActiveTab('markdown')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${
+              className={`flex-1 py-3 text-[10px] font-bold tracking-widest uppercase transition-colors border-r border-narka-grey ${
                 activeTab === 'markdown'
-                  ? 'bg-slate-800 text-slate-100 border-b-2 border-indigo-500'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-narka-beige text-narka-dark'
+                  : 'text-narka-grey hover:text-narka-light'
               }`}
             >
-              <FileText className="w-3.5 h-3.5" /> Markdown
+              01 / Markdown
             </button>
             <button
-              type="button"
               onClick={() => setActiveTab('code')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${
+              className={`flex-1 py-3 text-[10px] font-bold tracking-widest uppercase transition-colors ${
                 activeTab === 'code'
-                  ? 'bg-slate-800 text-slate-100 border-b-2 border-indigo-500'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-narka-beige text-narka-dark'
+                  : 'text-narka-grey hover:text-narka-light'
               }`}
             >
-              <Code2 className="w-3.5 h-3.5" /> Code
+              02 / Code
             </button>
           </div>
 
           <div className="flex-1 overflow-hidden">
             {activeTab === 'markdown' ? (
-              <MarkdownEditor
-                ytext={markdownText}
-                peers={peers}
-                setLocalSelection={sync.setLocalSelection}
-              />
+              <MarkdownEditor ytext={markdownText} peers={peers} setLocalSelection={sync.setLocalSelection} />
             ) : (
-              <CodeEditor
-                ytext={codeText}
-                peers={peers}
-                setLocalSelection={sync.setLocalSelection}
-              />
+              <CodeEditor ytext={codeText} peers={peers} setLocalSelection={sync.setLocalSelection} />
             )}
           </div>
         </div>
@@ -166,17 +136,12 @@ export default function App(): JSX.Element {
   const [config, setConfig] = useState<JoinConfig | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('markdown');
 
-  const handleLeave = useCallback((): void => {
-    setConfig(null);
-  }, []);
+  const handleLeave = useCallback(() => setConfig(null), []);
 
   return (
-    <div className="h-full bg-slate-950">
-      <RoomJoinModal
-        isOpen={config === null}
-        onJoin={(next) => setConfig(next)}
-      />
-      {config ? (
+    <div className="h-full bg-[#1C1C1C]">
+      <RoomJoinModal isOpen={config === null} onJoin={(next) => setConfig(next)} />
+      {config && (
         <Workspace
           key={config.roomId}
           config={config}
@@ -184,7 +149,7 @@ export default function App(): JSX.Element {
           setActiveTab={setActiveTab}
           onLeave={handleLeave}
         />
-      ) : null}
+      )}
     </div>
   );
 }
