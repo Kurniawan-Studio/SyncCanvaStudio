@@ -1,4 +1,3 @@
-// src/components/Toolbar.tsx
 import { Pen, Eraser, Trash2, Undo2, Redo2 } from 'lucide-react';
 import type { CanvasTool } from '../types';
 import { STROKE_COLORS, STROKE_WIDTHS } from '../lib/constants';
@@ -18,124 +17,56 @@ interface ToolbarProps {
 }
 
 export function Toolbar({
-  tool,
-  setTool,
-  color,
-  setColor,
-  width,
-  setWidth,
-  onClear,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
+  tool, setTool, color, setColor, width, setWidth, onClear, onUndo, onRedo, canUndo, canRedo,
 }: ToolbarProps): JSX.Element {
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/90 backdrop-blur border border-slate-700 shadow-lg">
-      <div className="flex items-center gap-1">
+    <div className="flex items-stretch border border-narka-grey bg-[#1C1C1C] p-1 gap-1">
+      <div className="flex gap-1 border-r border-narka-grey pr-1">
         <button
-          type="button"
           onClick={() => setTool('pen')}
-          className={`p-1.5 rounded-md transition-colors ${
-            tool === 'pen'
-              ? 'bg-indigo-500 text-white'
-              : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-          }`}
-          title="Pen"
-          aria-label="Pen tool"
+          className={`p-2 rounded-none transition-colors ${tool === 'pen' ? 'bg-narka-beige text-narka-dark' : 'text-narka-grey hover:text-narka-light'}`}
         >
           <Pen className="w-4 h-4" />
         </button>
         <button
-          type="button"
           onClick={() => setTool('eraser')}
-          className={`p-1.5 rounded-md transition-colors ${
-            tool === 'eraser'
-              ? 'bg-indigo-500 text-white'
-              : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-          }`}
-          title="Eraser"
-          aria-label="Eraser tool"
+          className={`p-2 rounded-none transition-colors ${tool === 'eraser' ? 'bg-narka-beige text-narka-dark' : 'text-narka-grey hover:text-narka-light'}`}
         >
           <Eraser className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="w-px h-5 bg-slate-700" />
-
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 px-2 border-r border-narka-grey">
         {STROKE_COLORS.map((swatch) => (
           <button
             key={swatch}
-            type="button"
             onClick={() => setColor(swatch)}
-            className={`w-5 h-5 rounded-full transition-transform ${
-              color === swatch
-                ? 'ring-2 ring-offset-1 ring-offset-slate-800 ring-white scale-110'
-                : 'hover:scale-105'
-            }`}
+            className={`w-4 h-4 rounded-none border border-transparent transition-transform ${color === swatch ? 'ring-1 ring-narka-beige scale-110' : 'hover:scale-105'}`}
             style={{ backgroundColor: swatch }}
-            title={swatch}
-            aria-label={`Color ${swatch}`}
           />
         ))}
       </div>
 
-      <div className="w-px h-5 bg-slate-700" />
-
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 px-2 border-r border-narka-grey">
         {STROKE_WIDTHS.map((strokeWidth) => (
           <button
             key={strokeWidth}
-            type="button"
             onClick={() => setWidth(strokeWidth)}
-            className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors ${
-              width === strokeWidth ? 'bg-slate-600' : 'hover:bg-slate-700'
-            }`}
-            title={`${strokeWidth}px`}
-            aria-label={`Stroke width ${strokeWidth}`}
+            className={`w-6 h-6 flex items-center justify-center rounded-none transition-colors ${width === strokeWidth ? 'bg-[#333333]' : 'hover:bg-[#252525]'}`}
           >
-            <div
-              className="rounded-full bg-slate-200"
-              style={{
-                width: Math.min(strokeWidth, 14),
-                height: Math.min(strokeWidth, 14),
-              }}
-            />
+            <div className="bg-narka-light" style={{ width: Math.min(strokeWidth, 12), height: Math.min(strokeWidth, 12) }} />
           </button>
         ))}
       </div>
 
-      <div className="w-px h-5 bg-slate-700" />
-
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={onUndo}
-          disabled={!canUndo}
-          className="p-1.5 rounded-md text-slate-400 hover:bg-slate-700 hover:text-slate-200 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
-          title="Undo"
-          aria-label="Undo"
-        >
+      <div className="flex gap-1 pl-1">
+        <button onClick={onUndo} disabled={!canUndo} className="p-2 text-narka-grey hover:text-narka-light disabled:opacity-30 transition-colors">
           <Undo2 className="w-4 h-4" />
         </button>
-        <button
-          type="button"
-          onClick={onRedo}
-          disabled={!canRedo}
-          className="p-1.5 rounded-md text-slate-400 hover:bg-slate-700 hover:text-slate-200 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
-          title="Redo"
-          aria-label="Redo"
-        >
+        <button onClick={onRedo} disabled={!canRedo} className="p-2 text-narka-grey hover:text-narka-light disabled:opacity-30 transition-colors">
           <Redo2 className="w-4 h-4" />
         </button>
-        <button
-          type="button"
-          onClick={onClear}
-          className="p-1.5 rounded-md text-rose-400 hover:bg-rose-500/20 transition-colors"
-          title="Clear canvas"
-          aria-label="Clear canvas"
-        >
+        <button onClick={onClear} className="p-2 text-[#ff3d00] hover:bg-[#ff3d00]/10 transition-colors">
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
