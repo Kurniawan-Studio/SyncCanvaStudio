@@ -1,4 +1,3 @@
-// src/components/WhiteboardCanvas.tsx
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import type { CanvasTool, StrokePoint, StrokeRecord } from '../types';
@@ -127,7 +126,6 @@ export function WhiteboardCanvas({
     }
   }, []);
 
-  // Size management + DPR-aware transforms.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -160,7 +158,6 @@ export function WhiteboardCanvas({
     return () => observer.disconnect();
   }, [redrawBase, redrawOverlay]);
 
-  // Subscribe to stroke changes.
   useEffect(() => {
     const handleChange = (): void => {
       committedStrokesRef.current = strokesArray.toArray();
@@ -297,7 +294,7 @@ export function WhiteboardCanvas({
   }, [strokesArray, transact]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full bg-grid-pattern">
       <canvas
         ref={baseCanvasRef}
         className="absolute inset-0 cursor-crosshair touch-none"
@@ -317,7 +314,7 @@ export function WhiteboardCanvas({
         containerWidth={canvasSize.width}
         containerHeight={canvasSize.height}
       />
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10">
+      <div className="absolute top-6 left-6 z-10">
         <Toolbar
           tool={tool}
           setTool={setTool}
