@@ -1,4 +1,3 @@
-// src/components/TopBar.tsx
 import { useState } from 'react';
 import { Copy, LogOut, Wifi, WifiOff, Download } from 'lucide-react';
 import type { PeerUser, P2PSyncStatus } from '../hooks/useP2PSync';
@@ -16,14 +15,7 @@ interface TopBarProps {
 }
 
 export function TopBar({
-  roomId,
-  status,
-  peers,
-  localUser,
-  onLeave,
-  onExportJSON,
-  onExportMarkdown,
-  onExportPNG,
+  roomId, status, peers, localUser, onLeave, onExportJSON, onExportMarkdown, onExportPNG,
 }: TopBarProps): JSX.Element {
   const [copied, setCopied] = useState<boolean>(false);
   const [exportOpen, setExportOpen] = useState<boolean>(false);
@@ -44,115 +36,83 @@ export function TopBar({
   ];
 
   return (
-    <header className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-900">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-indigo-400" />
-          <span className="text-sm font-semibold text-slate-100">{APP_NAME}</span>
+    <header className="flex items-center justify-between px-6 py-4 border-b border-narka-grey bg-[#1C1C1C]">
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 border border-narka-light flex items-center justify-center">
+            <div className="w-1 h-1 bg-narka-beige" />
+          </div>
+          <span className="text-sm font-bold tracking-widest uppercase text-narka-light">{APP_NAME}</span>
         </div>
-        <div className="h-5 w-px bg-slate-800" />
+        <div className="h-4 w-[1px] bg-narka-grey" />
         <button
-          type="button"
           onClick={handleCopy}
-          className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition-colors"
-          title="Copy room ID"
+          className="flex items-center gap-3 text-xs font-mono tracking-wider text-narka-grey hover:text-narka-light transition-colors uppercase"
         >
-          <span>{roomId}</span>
-          <Copy className="w-3 h-3" />
-          {copied ? <span className="text-emerald-400 text-[10px]">Copied!</span> : null}
+          <span>ID: {roomId}</span>
+          {copied ? <span className="text-narka-beige text-[10px] tracking-widest">[Copied]</span> : <Copy className="w-3 h-3" />}
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex items-center -space-x-1.5">
-          {allUsers.slice(0, 5).map((user, index) => (
-            <div
-              key={`${user.clientId}-${index}`}
-              className="w-6 h-6 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] font-semibold text-white"
-              style={{ backgroundColor: user.color }}
-              title={user.name}
-            >
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-          ))}
-          {allUsers.length > 5 ? (
-            <div className="w-6 h-6 rounded-full border-2 border-slate-900 bg-slate-700 flex items-center justify-center text-[10px] font-semibold text-slate-300">
-              +{allUsers.length - 5}
-            </div>
-          ) : null}
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] tracking-widest uppercase text-narka-grey">Active Nodes</span>
+          <div className="flex items-center -space-x-1">
+            {allUsers.slice(0, 5).map((user, index) => (
+              <div
+                key={`${user.clientId}-${index}`}
+                className="w-5 h-5 flex items-center justify-center text-[10px] font-bold text-narka-dark border border-[#1C1C1C]"
+                style={{ backgroundColor: user.color }}
+                title={user.name}
+              >
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800 text-xs">
+        <div className="flex items-center gap-2 text-xs tracking-widest uppercase">
           {status.isConnected ? (
-            <>
-              <Wifi className="w-3 h-3 text-emerald-400" />
-              <span className="text-emerald-400">{status.peerCount} peers</span>
-            </>
+            <><Wifi className="w-3.5 h-3.5 text-narka-beige" /><span className="text-narka-beige">{status.peerCount} P2P</span></>
           ) : (
-            <>
-              <WifiOff className="w-3 h-3 text-slate-500" />
-              <span className="text-slate-500">Offline</span>
-            </>
+            <><WifiOff className="w-3.5 h-3.5 text-narka-grey" /><span className="text-narka-grey">Offline</span></>
           )}
         </div>
 
         <div className="relative">
           <button
-            type="button"
             onClick={() => setExportOpen((prev) => !prev)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 border border-narka-grey text-xs tracking-widest uppercase text-narka-light hover:border-narka-light transition-colors rounded-none"
           >
-            <Download className="w-3.5 h-3.5" /> Export
+            <Download className="w-3.5 h-3.5" /> Data
           </button>
-          {exportOpen ? (
+          {exportOpen && (
             <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setExportOpen(false)}
-                aria-hidden
-              />
-              <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg bg-slate-800 border border-slate-700 shadow-xl overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onExportJSON();
-                    setExportOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:bg-slate-700"
-                >
-                  Export as JSON
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onExportMarkdown();
-                    setExportOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:bg-slate-700"
-                >
-                  Export as Markdown
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onExportPNG();
-                    setExportOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs text-slate-200 hover:bg-slate-700"
-                >
-                  Export Canvas as PNG
-                </button>
+              <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
+              <div className="absolute right-0 top-full mt-2 z-20 w-48 border border-narka-grey bg-[#1C1C1C] shadow-none">
+                {[
+                  { label: 'JSON Format', action: onExportJSON },
+                  { label: 'Markdown Format', action: onExportMarkdown },
+                  { label: 'Canvas (PNG)', action: onExportPNG }
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() => { item.action(); setExportOpen(false); }}
+                    className="w-full px-4 py-2 text-left text-[10px] tracking-widest uppercase text-narka-grey hover:text-narka-light hover:bg-[#252525] border-b border-[#333333] last:border-0 transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </>
-          ) : null}
+          )}
         </div>
 
         <button
-          type="button"
           onClick={onLeave}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 border border-narka-grey text-xs tracking-widest uppercase text-narka-light hover:bg-narka-light hover:text-narka-dark transition-colors rounded-none"
         >
-          <LogOut className="w-3.5 h-3.5" /> Leave
+          <LogOut className="w-3.5 h-3.5" /> Exit
         </button>
       </div>
     </header>
