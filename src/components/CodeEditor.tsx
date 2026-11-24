@@ -1,6 +1,6 @@
-// src/components/CodeEditor.tsx
 import { useCallback, useRef } from 'react';
 import * as Y from 'yjs';
+import type { ReactNode } from 'react';
 import type { PeerSelection, PeerUser } from '../hooks/useP2PSync';
 import { useCollabText } from '../hooks/useCollabText';
 
@@ -20,7 +20,7 @@ interface SelectionRange {
 function renderHighlightedText(
   text: string,
   selections: SelectionRange[],
-): React.ReactNode {
+): ReactNode {
   if (selections.length === 0) {
     return text;
   }
@@ -36,7 +36,7 @@ function renderHighlightedText(
   });
 
   const points = Array.from(boundaries).sort((a, b) => a - b);
-  const nodes: React.ReactNode[] = [];
+  const nodes: ReactNode[] = [];
 
   for (let index = 0; index < points.length - 1; index += 1) {
     const start = points[index];
@@ -101,17 +101,16 @@ export function CodeEditor({
   const editingPeers = peers.filter((peer) => peer.selection?.field === 'code');
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800">
-        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
-          Code
+    <div className="flex flex-col h-full bg-[#1C1C1C]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-narka-grey bg-[#1C1C1C]">
+        <span className="text-[10px] font-bold tracking-widest uppercase text-narka-light">
+          Code / Editor
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {editingPeers.map((peer) => (
             <span
               key={peer.clientId}
-              className="px-2 py-0.5 rounded-full text-[10px] font-medium text-white"
-              style={{ backgroundColor: peer.color }}
+              className="px-2 py-0.5 border border-narka-grey text-[9px] font-mono text-narka-beige uppercase"
             >
               {peer.name}
             </span>
@@ -137,7 +136,7 @@ export function CodeEditor({
           onScroll={handleScroll}
           placeholder="// Write your collaborative code here..."
           spellCheck={false}
-          className="absolute inset-0 w-full h-full p-4 text-sm font-mono leading-relaxed bg-transparent text-slate-100 resize-none border-0 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-600 no-scrollbar"
+          className="absolute inset-0 w-full h-full p-4 text-sm font-mono leading-relaxed bg-transparent text-narka-light resize-none border-0 outline-none focus:outline-none focus:ring-0 placeholder:text-narka-grey no-scrollbar"
         />
       </div>
     </div>
