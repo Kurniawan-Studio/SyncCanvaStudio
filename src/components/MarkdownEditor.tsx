@@ -1,143 +1,332 @@
-// src/components/MarkdownEditor.tsx
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import type { PeerSelection, PeerUser } from '../hooks/useP2PSync';
-import { useCollabText } from '../hooks/useCollabText';
+import type { CanvasTool, StrokePoint, StrokeRecord } from '../types';
+import type { PeerUser } from '../hooks/useP2PSync';
+import { SHARED_KEYS } from '../hooks/useP2PSync';
+import { ERASER_RADIUS_NORMALIZED } from '../lib/constants';
+import { Toolbar } from './Toolbar';
+import { PeerCursors } from './PeerCursors';
 
-interface MarkdownEditorProps {
-  ytext: Y.Text;
+interface WhiteboardCanvasProps {
+  doc: Y.Doc;
+  transact: (fn: () => void) => void;
   peers: PeerUser[];
-  setLocalSelection: (selection: PeerSelection | null) => void;
+  setLocalCursor: (cursor: { x: number; y: number } | null) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
-interface SelectionRange {
-  peerId: number;
-  start: number;
-  end: number;
+interface ActiveStroke {
   color: string;
+  width: number;
+  points: StrokePoint[];
 }
 
-function renderHighlightedText(
-  text: string,
-  selections: SelectionRange[],
-): React.ReactNode {
-  if (selections.length === 0) {
-    return text;
+function uuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
   }
-
-  const boundaries = new Set<number>([0, text.length]);
-  selections.forEach((selection) => {
-    if (selection.start > 0 && selection.start < text.length) {
-      boundaries.add(selection.start);
-    }
-    if (selection.end > 0 && selection.end < text.length) {
-      boundaries.add(selection.end);
-    }
-  });
-
-  const points = Array.from(boundaries).sort((a, b) => a - b);
-  const nodes: React.ReactNode[] = [];
-
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const start = points[index];
-    const end = points[index + 1];
-    if (typeof start !== 'number' || typeof end !== 'number' || end <= start) {
-      continue;
-    }
-    const segmentText = text.slice(start, end);
-    const covering = selections.filter(
-      (selection) => selection.start <= start && selection.end >= end,
-    );
-    if (covering.length === 0) {
-      nodes.push(<span key={index}>{segmentText}</span>);
-    } else {
-      const lead = covering[0];
-      const background = lead ? `${lead.color}33` : 'transparent';
-      nodes.push(
-        <span key={index} style={{ backgroundColor: background }}>
-          {segmentText}
-        </span>,
-      );
-    }
-  }
-
-  return nodes;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function MarkdownEditor({
-  ytext,
+function drawStrokeOnContext(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  lineWidth: number,
+  points: StrokePoint[],
+  canvasWidth: number,
+  canvasHeight: number,
+): void {
+  if (points.length === 0) {
+    return;
+  }
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = lineWidth;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (points.length === 1) {
+    const point = points[0];
+    if (!point) return;
+    ctx.beginPath();
+    ctx.arc(point.x * canvasWidth, point.y * canvasHeight, lineWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
+  ctx.beginPath();
+  const first = points[0];
+  if (!first) return;
+  ctx.moveTo(first.x * canvasWidth, first.y * canvasHeight);
+  for (let index = 1; index < points.length; index += 1) {
+    const point = points[index];
+    if (!point) continue;
+    ctx.lineTo(point.x * canvasWidth, point.y * canvasHeight);
+  }
+  ctx.stroke();
+}
+
+export function WhiteboardCanvas({
+  doc,
+  transact,
   peers,
-  setLocalSelection,
-}: MarkdownEditorProps): JSX.Element {
-  const { value, updateValue, updateSelection, clearSelection } = useCollabText({
-    ytext,
-    field: 'markdown',
-    setLocalSelection,
+  setLocalCursor,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+}: WhiteboardCanvasProps): JSX.Element {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const baseCanvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [tool, setTool] = useState<CanvasTool>('pen');
+  const [color, setColor] = useState<string>('#3b82f6');
+  const [width, setWidth] = useState<number>(4);
+  const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({
+    width: 0,
+    height: 0,
   });
 
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const activeStrokeRef = useRef<ActiveStroke | null>(null);
+  const isDrawingRef = useRef<boolean>(false);
+  const committedStrokesRef = useRef<StrokeRecord[]>([]);
+  const sizeRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const dprRef = useRef<number>(
+    typeof window !== 'undefined' ? Math.max(1, window.devicePixelRatio || 1) : 1,
+  );
 
-  const handleScroll = useCallback((event: React.UIEvent<HTMLTextAreaElement>): void => {
-    if (overlayRef.current) {
-      overlayRef.current.scrollTop = event.currentTarget.scrollTop;
-      overlayRef.current.scrollLeft = event.currentTarget.scrollLeft;
+  const strokesArray = doc.getArray<StrokeRecord>(SHARED_KEYS.strokes);
+
+  const redrawBase = useCallback((): void => {
+    const canvas = baseCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { width: cw, height: ch } = sizeRef.current;
+    ctx.clearRect(0, 0, cw, ch);
+    committedStrokesRef.current.forEach((stroke) => {
+      drawStrokeOnContext(ctx, stroke.color, stroke.width, stroke.points, cw, ch);
+    });
+  }, []);
+
+  const redrawOverlay = useCallback((): void => {
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const { width: cw, height: ch } = sizeRef.current;
+    ctx.clearRect(0, 0, cw, ch);
+    const active = activeStrokeRef.current;
+    if (active) {
+      drawStrokeOnContext(ctx, active.color, active.width, active.points, cw, ch);
     }
   }, []);
 
-  const selectionRanges: SelectionRange[] = peers
-    .filter(
-      (peer): peer is PeerUser & { selection: PeerSelection } =>
-        peer.selection !== null &&
-        peer.selection.field === 'markdown' &&
-        peer.selection.start !== peer.selection.end,
-    )
-    .map((peer) => ({
-      peerId: peer.clientId,
-      start: peer.selection.start,
-      end: peer.selection.end,
-      color: peer.color,
-    }));
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-  const editingPeers = peers.filter((peer) => peer.selection?.field === 'markdown');
+    const applySize = (): void => {
+      const rect = container.getBoundingClientRect();
+      const dpr = dprRef.current;
+      sizeRef.current = { width: rect.width, height: rect.height };
+
+      [baseCanvasRef.current, overlayCanvasRef.current].forEach((canvas) => {
+        if (!canvas) return;
+        canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+      });
+
+      setCanvasSize({ width: rect.width, height: rect.height });
+      redrawBase();
+      redrawOverlay();
+    };
+
+    applySize();
+    const observer = new ResizeObserver(applySize);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [redrawBase, redrawOverlay]);
+
+  useEffect(() => {
+    const handleChange = (): void => {
+      committedStrokesRef.current = strokesArray.toArray();
+      redrawBase();
+    };
+    handleChange();
+    strokesArray.observe(handleChange);
+    return () => {
+      strokesArray.unobserve(handleChange);
+    };
+  }, [strokesArray, redrawBase]);
+
+  const pointerToNormalized = useCallback(
+    (event: React.PointerEvent<HTMLCanvasElement>): StrokePoint => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return { x: 0, y: 0 };
+      }
+      return {
+        x: (event.clientX - rect.left) / rect.width,
+        y: (event.clientY - rect.top) / rect.height,
+      };
+    },
+    [],
+  );
+
+  const eraseAt = useCallback(
+    (point: StrokePoint): void => {
+      const toDelete: number[] = [];
+      strokesArray.toArray().forEach((stroke, index) => {
+        const hit = stroke.points.some((strokePoint) => {
+          const dx = strokePoint.x - point.x;
+          const dy = strokePoint.y - point.y;
+          return Math.hypot(dx, dy) < ERASER_RADIUS_NORMALIZED;
+        });
+        if (hit) {
+          toDelete.push(index);
+        }
+      });
+      if (toDelete.length === 0) {
+        return;
+      }
+      transact(() => {
+        for (let i = toDelete.length - 1; i >= 0; i -= 1) {
+          const index = toDelete[i];
+          if (typeof index === 'number') {
+            strokesArray.delete(index, 1);
+          }
+        }
+      });
+    },
+    [strokesArray, transact],
+  );
+
+  const commitActiveStroke = useCallback((): void => {
+    const active = activeStrokeRef.current;
+    activeStrokeRef.current = null;
+    if (!active || active.points.length === 0) {
+      return;
+    }
+    const record: StrokeRecord = {
+      id: uuid(),
+      color: active.color,
+      width: active.width,
+      points: active.points,
+    };
+    transact(() => {
+      strokesArray.push([record]);
+    });
+  }, [strokesArray, transact]);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const point = pointerToNormalized(event);
+    setLocalCursor(point);
+
+    if (tool === 'eraser') {
+      eraseAt(point);
+      return;
+    }
+
+    isDrawingRef.current = true;
+    activeStrokeRef.current = {
+      color,
+      width,
+      points: [point],
+    };
+    redrawOverlay();
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
+    const point = pointerToNormalized(event);
+    setLocalCursor(point);
+
+    if (tool === 'eraser') {
+      if (event.buttons === 1) {
+        eraseAt(point);
+      }
+      return;
+    }
+
+    if (!isDrawingRef.current || !activeStrokeRef.current) {
+      return;
+    }
+    activeStrokeRef.current.points.push(point);
+    redrawOverlay();
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>): void => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!isDrawingRef.current) {
+      return;
+    }
+    isDrawingRef.current = false;
+    commitActiveStroke();
+    redrawOverlay();
+  };
+
+  const handlePointerLeave = (): void => {
+    setLocalCursor(null);
+  };
+
+  const handleClear = useCallback((): void => {
+    if (strokesArray.length === 0) {
+      return;
+    }
+    transact(() => {
+      strokesArray.delete(0, strokesArray.length);
+    });
+  }, [strokesArray, transact]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800">
-        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
-          Markdown
-        </span>
-        <div className="flex items-center gap-1">
-          {editingPeers.map((peer) => (
-            <span
-              key={peer.clientId}
-              className="px-2 py-0.5 rounded-full text-[10px] font-medium text-white"
-              style={{ backgroundColor: peer.color }}
-            >
-              {peer.name}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="relative flex-1 overflow-hidden">
-        <div
-          ref={overlayRef}
-          className="absolute inset-0 p-4 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words text-transparent pointer-events-none overflow-hidden no-scrollbar"
-          aria-hidden
-        >
-          {renderHighlightedText(value, selectionRanges)}
-        </div>
-        <textarea
-          value={value}
-          onChange={(event) => updateValue(event.target.value)}
-          onSelect={(event) =>
-            updateSelection(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
-          }
-          onBlur={clearSelection}
-          onScroll={handleScroll}
-          placeholder="Write your collaborative markdown here..."
-          spellCheck={false}
-          className="absolute inset-0 w-full h-full p-4 text-sm font-mono leading-relaxed bg-transparent text-slate-100 resize-none border-0 outline-none focus:outline-none focus:ring-0 placeholder:text-slate-600 no-scrollbar"
+    <div ref={containerRef} className="relative w-full h-full bg-grid-pattern">
+      <canvas
+        ref={baseCanvasRef}
+        className="absolute inset-0 cursor-crosshair touch-none"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+      />
+      <canvas
+        ref={overlayCanvasRef}
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden
+      />
+      <PeerCursors
+        peers={peers}
+        containerWidth={canvasSize.width}
+        containerHeight={canvasSize.height}
+      />
+      <div className="absolute top-6 left-6 z-10">
+        <Toolbar
+          tool={tool}
+          setTool={setTool}
+          color={color}
+          setColor={setColor}
+          width={width}
+          setWidth={setWidth}
+          onClear={handleClear}
+          onUndo={onUndo}
+          onRedo={onRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
         />
       </div>
     </div>
