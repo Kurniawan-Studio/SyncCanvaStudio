@@ -1,9 +1,14 @@
-// src/lib/constants.ts
 export const APP_NAME = 'SyncCanvas Studio';
 
 export const STROKE_COLORS: readonly string[] = [
-  '#0f172a', '#ef4444', '#f97316', '#eab308',
-  '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
+  '#F5F5F0', // off-white
+  '#D6C6B8', // narka beige
+  '#FF3D00', // signal orange
+  '#B85450', // muted red
+  '#A68A4E', // gold
+  '#5E8B7E', // sage
+  '#5E7A8B', // slate blue
+  '#1C1C1C', // near-black
 ];
 
 export const STROKE_WIDTHS: readonly number[] = [2, 4, 8, 12];
@@ -35,8 +40,8 @@ function greet(peer: Peer): string {
 }
 
 const peers: Peer[] = [
-  { id: '1', name: 'Alice', color: '#ef4444' },
-  { id: '2', name: 'Bob', color: '#3b82f6' },
+  { id: '1', name: 'Alice', color: '#B85450' },
+  { id: '2', name: 'Bob', color: '#5E7A8B' },
 ];
 
 peers.forEach((peer) => console.log(greet(peer)));
