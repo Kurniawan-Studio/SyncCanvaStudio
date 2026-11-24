@@ -84,7 +84,7 @@ export function WhiteboardCanvas({
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const [tool, setTool] = useState<CanvasTool>('pen');
-  const [color, setColor] = useState<string>('#3b82f6');
+  const [color, setColor] = useState<string>('#F5F5F0');
   const [width, setWidth] = useState<number>(4);
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({
     width: 0,
