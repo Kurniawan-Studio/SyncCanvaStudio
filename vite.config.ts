@@ -5,7 +5,15 @@ export default defineConfig({
   plugins: [react()],
   base: '/',
   define: {
-    global: 'window',
+    global: 'globalThis',
+    'process.env.NODE_ENV': JSON.stringify('production'),
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   build: {
     target: 'es2020',
