@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: './',
+  base: '/',
+  define: {
+    global: 'window',
+  },
   build: {
     target: 'es2020',
     sourcemap: false,
