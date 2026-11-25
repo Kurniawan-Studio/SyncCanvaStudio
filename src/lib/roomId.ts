@@ -1,4 +1,3 @@
-// src/lib/roomId.ts
 export {
   generateRoomId,
   pickRandomUserColor,
