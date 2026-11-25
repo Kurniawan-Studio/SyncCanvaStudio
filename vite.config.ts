@@ -21,7 +21,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          yjs: ['yjs', 'y-webrtc', 'y-indexeddb', 'y-protocols'],
+          yjs: ['yjs', 'y-webrtc', 'y-indexeddb'],
           react: ['react', 'react-dom'],
         },
       },
