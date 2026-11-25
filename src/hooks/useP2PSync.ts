@@ -122,14 +122,16 @@ export function generateRoomId(length = 8): string {
   }
   let result = '';
   for (let i = 0; i < safeLength; i += 1) {
-    result += ROOM_ID_ALPHABET[bytes[i] % ROOM_ID_ALPHABET.length];
+    const alphabetIndex = bytes[i] % ROOM_ID_ALPHABET.length;
+    result += ROOM_ID_ALPHABET[alphabetIndex] ?? 'A';
   }
   return result;
 }
 
 /** Pick a peer color at random (used when creating a new identity). */
 export function pickRandomUserColor(): string {
-  return USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)];
+  const randomIndex = Math.floor(Math.random() * USER_COLORS.length);
+  return USER_COLORS[randomIndex] ?? '#B85450';
 }
 
 /** Top-level shared type keys — keep in sync with App and exporters. */
@@ -150,7 +152,6 @@ interface LocalIdentityState {
 export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
   const { roomId, password, user, signalingServers } = options;
 
-  // Stable Y.Doc per component mount.
   const [doc] = useState<Y.Doc>(() => new Y.Doc());
 
   const [provider, setProvider] = useState<WebrtcProvider | null>(null);
@@ -170,7 +171,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     canRedo: false,
   });
 
-  // Latest local identity — read synchronously inside async effect setup.
   const localIdentityRef = useRef<LocalIdentityState>({
     name: user.name,
     color: user.color,
@@ -180,7 +180,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
   localIdentityRef.current.name = user.name;
   localIdentityRef.current.color = user.color;
 
-  // Serialize signaling config so effect deps are stable across renders.
   const signalingKey = useMemo(
     () => (signalingServers && signalingServers.length > 0 ? signalingServers.join('|') : ''),
     [signalingServers],
@@ -192,9 +191,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     const serverList =
       signalingKey.length > 0 ? signalingKey.split('|') : [...DEFAULT_SIGNALING_SERVERS];
 
-    // -------------------------------------------------------------
-    // 1. Offline persistence (IndexedDB).
-    // -------------------------------------------------------------
     let idb: IndexeddbPersistence;
     try {
       idb = new IndexeddbPersistence(`synccanvas-room-${roomId}`, doc);
@@ -228,9 +224,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
         }));
       });
 
-    // -------------------------------------------------------------
-    // 2. WebRTC provider (P2P sync + awareness).
-    // -------------------------------------------------------------
     let rtcProvider: WebrtcProvider;
     try {
       rtcProvider = new WebrtcProvider(`synccanvas-room-${roomId}`, doc, {
@@ -253,7 +246,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     setProvider(rtcProvider);
     setAwareness(rtcProvider.awareness);
 
-    // Seed local awareness state so peers see us immediately.
     rtcProvider.awareness.setLocalStateField('user', {
       name: localIdentityRef.current.name,
       color: localIdentityRef.current.color,
@@ -261,10 +253,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     rtcProvider.awareness.setLocalStateField('cursor', localIdentityRef.current.cursor);
     rtcProvider.awareness.setLocalStateField('selection', localIdentityRef.current.selection);
 
-    // -------------------------------------------------------------
-    // 3. Per-user UndoManager (only tracks origin === null).
-    //    Remote updates flow in with origin === rtcProvider.
-    // -------------------------------------------------------------
     const markdownText = doc.getText(SHARED_KEYS.markdown);
     const codeText = doc.getText(SHARED_KEYS.code);
     const strokesArray = doc.getArray<Y.Map<unknown>>(SHARED_KEYS.strokes);
@@ -275,9 +263,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     });
     setUndoManager(um);
 
-    // -------------------------------------------------------------
-    // 4. Awareness → peers list.
-    // -------------------------------------------------------------
     const handleAwarenessChange = (): void => {
       if (cancelled) return;
       const states = rtcProvider.awareness.getStates();
@@ -307,9 +292,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     handleAwarenessChange();
     rtcProvider.awareness.on('change', handleAwarenessChange);
 
-    // -------------------------------------------------------------
-    // 5. Undo stack → react state.
-    // -------------------------------------------------------------
     const refreshUndoState = (): void => {
       if (cancelled) return;
       setUndoState({ canUndo: um.canUndo(), canRedo: um.canRedo() });
@@ -319,9 +301,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     um.on('stack-item-popped', refreshUndoState);
     um.on('stack-cleared', refreshUndoState);
 
-    // -------------------------------------------------------------
-    // Cleanup — deterministic, leak-free.
-    // -------------------------------------------------------------
     return () => {
       cancelled = true;
 
@@ -344,7 +323,6 @@ export function useP2PSync(options: UseP2PSyncOptions): UseP2PSyncResult {
     };
   }, [doc, roomId, password, signalingKey]);
 
-  // Propagate local identity changes (name / color) to peers.
   useEffect(() => {
     if (!awareness) return;
     awareness.setLocalStateField('user', {
