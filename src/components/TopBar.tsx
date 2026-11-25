@@ -46,7 +46,9 @@ export function TopBar({
           <span className="text-xs font-bold tracking-widest uppercase text-narka-light">{APP_NAME}</span>
         </div>
         <button
+          type="button"
           onClick={handleCopy}
+          data-tour="room-id"
           className="flex items-center gap-2 text-[10px] font-mono tracking-wider text-narka-grey hover:text-narka-light transition-colors uppercase border border-narka-grey px-2 py-1"
         >
           <span>ID: {roomId}</span>
@@ -55,7 +57,7 @@ export function TopBar({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        <div className="flex items-center -space-x-1">
+        <div className="flex items-center -space-x-1" data-tour="peers">
           {allUsers.slice(0, 4).map((user, index) => (
             <div
               key={`${user.clientId}-${index}`}
@@ -81,8 +83,9 @@ export function TopBar({
           )}
         </div>
 
-        <div className="relative">
+        <div className="relative" data-tour="export">
           <button
+            type="button"
             onClick={() => setExportOpen((prev) => !prev)}
             className="flex items-center gap-1.5 px-2 py-1.5 border border-narka-grey text-[10px] tracking-widest uppercase text-narka-light hover:border-narka-light transition-colors rounded-none"
           >
@@ -95,10 +98,11 @@ export function TopBar({
                 {[
                   { label: 'Export JSON', action: onExportJSON },
                   { label: 'Export MD', action: onExportMarkdown },
-                  { label: 'Export PNG', action: onExportPNG }
+                  { label: 'Export PNG', action: onExportPNG },
                 ].map((item) => (
                   <button
                     key={item.label}
+                    type="button"
                     onClick={() => { item.action(); setExportOpen(false); }}
                     className="w-full px-3 py-2 text-left text-[10px] tracking-widest uppercase text-narka-grey hover:text-narka-light hover:bg-[#252525] border-b border-[#333333] last:border-0 transition-colors"
                   >
@@ -111,14 +115,17 @@ export function TopBar({
         </div>
 
         <button
+          type="button"
           onClick={onOpenHelp}
           className="p-1.5 text-narka-grey hover:text-narka-light transition-colors"
-          title="Help"
+          title="Replay tour"
+          aria-label="Replay tour"
         >
           <HelpCircle className="w-4 h-4" />
         </button>
 
         <button
+          type="button"
           onClick={onLeave}
           className="flex items-center gap-1.5 px-2 py-1.5 bg-narka-light text-narka-dark text-[10px] tracking-widest uppercase font-bold hover:bg-[#d4d4d4] transition-colors rounded-none"
         >
