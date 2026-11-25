@@ -23,8 +23,25 @@ body {
 
 .bg-grid-pattern {
   background-color: #1C1C1C;
-  background-image: 
+  background-image:
     linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
+}
+
+@keyframes tour-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 9999px rgba(28, 28, 28, 0.85),
+      0 0 20px rgba(214, 198, 184, 0.20);
+  }
+  50% {
+    box-shadow:
+      0 0 0 9999px rgba(28, 28, 28, 0.85),
+      0 0 45px rgba(214, 198, 184, 0.55);
+  }
+}
+
+.tour-spotlight {
+  animation: tour-pulse 2.4s ease-in-out infinite;
 }
