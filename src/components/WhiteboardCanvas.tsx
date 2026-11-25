@@ -32,7 +32,12 @@ function uuid(): string {
 }
 
 function drawStrokeOnContext(
-  ctx: CanvasRenderingContext2D, color: string, lineWidth: number, points: StrokePoint[], canvasWidth: number, canvasHeight: number,
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  lineWidth: number,
+  points: StrokePoint[],
+  canvasWidth: number,
+  canvasHeight: number,
 ): void {
   if (points.length === 0) return;
   ctx.strokeStyle = color;
@@ -217,7 +222,7 @@ export function WhiteboardCanvas({
   }, [strokesArray, transact]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-grid-pattern">
+    <div ref={containerRef} className="relative w-full h-full bg-grid-pattern" data-tour="canvas">
       <canvas
         ref={baseCanvasRef}
         className="absolute inset-0 cursor-crosshair touch-none"
@@ -226,9 +231,11 @@ export function WhiteboardCanvas({
       />
       <canvas ref={overlayCanvasRef} className="absolute inset-0 pointer-events-none" aria-hidden />
       <PeerCursors peers={peers} containerWidth={canvasSize.width} containerHeight={canvasSize.height} />
-      
-      {/* Toolbar positioning: Bottom on mobile, Top-Left on desktop */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:bottom-auto md:top-6 md:left-6 z-10 w-max max-w-[90vw] overflow-x-auto no-scrollbar">
+
+      <div
+        data-tour="toolbar"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:bottom-auto md:top-6 md:left-6 z-10 w-max max-w-[90vw] overflow-x-auto no-scrollbar"
+      >
         <Toolbar
           tool={tool} setTool={setTool} color={color} setColor={setColor}
           width={width} setWidth={setWidth} onClear={handleClear}
