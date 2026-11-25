@@ -122,7 +122,8 @@ export function generateRoomId(length = 8): string {
   }
   let result = '';
   for (let i = 0; i < safeLength; i += 1) {
-    const alphabetIndex = bytes[i] % ROOM_ID_ALPHABET.length;
+    const byte = bytes[i] ?? 0;
+    const alphabetIndex = byte % ROOM_ID_ALPHABET.length;
     result += ROOM_ID_ALPHABET[alphabetIndex] ?? 'A';
   }
   return result;
